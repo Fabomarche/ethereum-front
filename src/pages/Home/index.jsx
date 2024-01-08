@@ -153,8 +153,14 @@ const Home = () => {
 
     const checkWalletAge = (e) => {
         e.preventDefault()
-        setTimeout(isWalletOldFetch, 2000)
-        address && setShowWalletAge(true)
+        isWalletOldFetch()
+            .then(() => {
+                address && setShowWalletAge(true);
+            })
+            .catch((err) => {
+                console.error(err);
+            });
+
     }
 
 
