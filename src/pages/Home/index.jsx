@@ -11,8 +11,9 @@ const Home = () => {
     const navigate = useNavigate()
     const [address, setAddress] = useState('')
     const [isWalletOld, setIsWalletOld] = useState(false)
+    const [showWalletAge, setShowWalletAge] = useState(false)
     const [balance, setBalance] = useState(0)
-    const [ethPrices, setEthPrices] = useState()
+    const [ethPrices, setEthPrices] = useState(null)
     const [selectedCurrency, setSelectedCurrency] = useState('usd');
     const [isOpenEditor, setIsOpenEditor] = useState(false)
     const [editorValue, setEditorValue] = useState(0)
@@ -29,16 +30,9 @@ const Home = () => {
         setFavouritesWallets(JSON.parse(localStorage.getItem('favourites')))
     }, [navigate]);
 
-    const searchAddress = async (e) => {
-        e.preventDefault()
-        console.log('search')
-        walletBalanceFetch()
-        isWalletOldFetch()
 
-    }
 
     const isWalletOldFetch = async () => {
-        console.log("wallet ej")
         try {
             const response = await fetch(config.development.backendUrl + `/api/etherscan/txlist?address=${address}`, {
                 method: 'GET',
@@ -50,7 +44,6 @@ const Home = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log("iswallet?")
                 setIsWalletOld(data)
             } else {
                 console.error('isWalletOld failed');
@@ -158,10 +151,27 @@ const Home = () => {
         }
     }
 
-    const selectWallet = (address) => {
-        setAddress(address)
-        searchAddress()
+    const checkWalletAge = (e) => {
+        e.preventDefault()
+        setTimeout(isWalletOldFetch, 2000)
+        address && setShowWalletAge(true)
     }
+
+
+    const selectWallet = (address) => {
+        setBalance(0)
+        setShowWalletAge(false)
+        setIsWalletOld(false)
+        setAddress(address)
+    }
+
+    const handleWalletBalance = () => {
+        if (ethPrices === null || ethPrices.usd === null) {
+            ethPricefetch()
+        }
+        walletBalanceFetch()
+    }
+
 
     return (
         <Col md={9} className='mt-5'>
@@ -181,9 +191,15 @@ const Home = () => {
 
                         <Col className='mt-2' >
 
-                            <Button onClick={e => searchAddress(e)} className='me-2' >
-                                Search
+                            <Button onClick={() => handleWalletBalance()} className='me-2' >
+                                Get Balance
                             </Button>
+
+                            <Button onClick={e => checkWalletAge(e)} className='me-2' >
+                                is wallet old?
+                            </Button>
+
+
 
                             <Button onClick={addTofavourites} variant="outline-danger">
                                 <FaHeart />
@@ -193,11 +209,13 @@ const Home = () => {
                     </Form>
                 </Col>
             </Row>
-            {isWalletOld &&
+            {showWalletAge && address &&
                 <Row className='mt-3' >
-                    <Alert variant="danger">Wallet is old!</Alert>
+                    <Alert variant="danger">Wallet is {isWalletOld ? '' : 'not'} old!</Alert>
                 </Row>
+
             }
+
             <Row className='mt-3'>
                 <Col>
                     <Alert className='cards'>
@@ -236,8 +254,9 @@ const Home = () => {
                             <option value="usd">USD</option>
                             <option value="euro">Euro</option>
                         </Form.Select>
+                        {console.log(balance, ethPrices)}
 
-                        {balance && ethPrices &&
+                        {balance !== 0 && ethPrices &&
 
                             <span>{(balance * ethPrices[selectedCurrency]).toFixed(2)} $</span>
 
@@ -250,7 +269,7 @@ const Home = () => {
             <Row>
                 <ListGroup>
                     <ListGroup.Item variant='primary'>Favourites Wallets</ListGroup.Item>
-                    {favouritesWallets.map(address => <ListGroup.Item action onClick={() => selectWallet(address)}>{address}</ListGroup.Item>)}
+                    {favouritesWallets.map(address => <ListGroup.Item action onClick={() => selectWallet(address)} key={address}>{address}</ListGroup.Item>)}
                 </ListGroup>
             </Row>
         </Col>
